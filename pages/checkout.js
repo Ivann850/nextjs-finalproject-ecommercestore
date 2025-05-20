@@ -1,27 +1,40 @@
-import Footer from "./Footer";
+import Layout from "../components/Layout";
 import {useContext, useEffect, useState} from "react";
-import {ProductsContext} from "./ProductsContext";
+import {ProductsContext} from "../components/ProductsContext";
 
-export default function Layout({children}) {
-  const {setSelectedProducts} = useContext(ProductsContext);
-  const [success,setSuccess] = useState(false);
+export default function CheckoutPage() {
+  const {selectedProducts,setSelectedProducts} = useContext(ProductsContext);
+  const [productsInfos,setProductsInfos] = useState([]);
+  const [address,setAddress] = useState('');
+  const [city,setCity] = useState('');
+  const [name,setName] = useState('');
+  const [email,setEmail] = useState('');
+
   useEffect(() => {
-    if (window.location.href.includes('success')) {
-      setSelectedProducts([]);
-      setSuccess(true);
+    const uniqIds = [...new Set(selectedProducts)];
+    fetch('/api/products?ids='+uniqIds.join(','))
+      .then(response => response.json())
+      .then(json => setProductsInfos(json));
+  }, [selectedProducts]);
+
+  function moreOfThisProduct(id) {
+    setSelectedProducts(prev => [...prev,id]);
+  }
+  function lessOfThisProduct(id) {
+    const pos = selectedProducts.indexOf(id);
+    if (pos !== -1) {
+      setSelectedProducts( prev => {
+        return prev.filter((value,index) => index !== pos);
+      });
     }
-  }, []);
-  return (
-    <div>
-      <div className="p-5">
-        {success && (
-          <div className="mb-5 bg-green-400 text-white text-lg p-5 rounded-xl">
-            Thanks for your order!
-          </div>
-        )}
-        {children}
-      </div>
-      <Footer />
-    </div>
-  );
+  }
+
+  const deliveryPrice = 5;
+  let subtotal = 0;
+  if (selectedProducts?.length) {
+    for (let id of selectedProducts) {
+      const price = productsInfos.find(p => p._id === id)?.price || 0;
+      subtotal += price;
+    }
+  }
 }
